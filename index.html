@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PVR Pacific | Cinema Ticket Booking & Availability Module</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              gold: '#d4af37',
+              amber: '#f59e0b',
+              surface: '#0e121a',
+              deep: '#06080d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="text-slate-100 flex flex-col min-h-screen">
+
+  <!-- =========================================================================
+       TOP NAVIGATION BAR
+       ========================================================================= -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-white/10 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo & Brand -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('availability')">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-yellow-700 p-0.5 shadow-lg shadow-amber-500/20">
+          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+            <i data-lucide="clapperboard" class="w-6 h-6 text-amber-400"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-black font-cinematic tracking-wider gold-text-gradient">
+              PVR PACIFIC
+            </h1>
+            <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold">
+              Multiplex
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-sans tracking-wide">
+            Cinema Availability & DBMS/OS PBL Module
+          </p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center gap-1 bg-slate-900/60 p-1.5 rounded-xl border border-white/5">
+        <button id="tabBtn-availability" onclick="switchTab('availability')" class="px-4 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase transition-all text-amber-400 border-b-2 border-amber-400 bg-white/5 flex items-center gap-1.5">
+          <i data-lucide="armchair" class="w-4 h-4"></i> Availability Module
+        </button>
+        <button id="tabBtn-movies" onclick="switchTab('movies')" class="px-4 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+          <i data-lucide="film" class="w-4 h-4"></i> Now Showing
+        </button>
+        <button id="tabBtn-tickets" onclick="switchTab('tickets')" class="px-4 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+          <i data-lucide="ticket" class="w-4 h-4"></i> My Tickets
+        </button>
+        <button id="tabBtn-inspector" onclick="switchTab('inspector')" class="px-4 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+          <i data-lucide="cpu" class="w-4 h-4"></i> DBMS & OS Lab
+        </button>
+      </nav>
+
+      <!-- Right Utility Actions -->
+      <div class="flex items-center gap-3">
+        <!-- Live XAMPP MySQL Status Pill -->
+        <div id="mysqlStatusBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-white/10" title="XAMPP MySQL Connection State">
+          <span id="mysqlDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span id="mysqlStatusText" class="text-amber-300 font-mono font-bold text-xs">MYSQL: CHECKING...</span>
+        </div>
+
+        <!-- Live Mutex Status Pill -->
+        <div id="mutexStatusBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30" title="OS Mutex Status: std::mutex seatMutex">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="text-emerald-300 font-mono font-bold text-xs">MUTEX: FREE</span>
+        </div>
+
+        <!-- Add Movie Quick Action -->
+        <button onclick="openAddMovieModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Movie
+        </button>
+
+        <!-- User Profile Pill -->
+        <button onclick="openUserModal()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs">
+            <i data-lucide="user" class="w-4 h-4"></i>
+          </div>
+          <div class="hidden lg:block text-xs">
+            <div id="userBadgeText" class="font-semibold text-slate-200">Ayush Rawat</div>
+            <div class="text-[10px] text-slate-400 font-mono">Customer Profile</div>
+          </div>
+        </button>
+
+        <!-- Quick OS Terminal Toggle -->
+        <button onclick="toggleInspector()" class="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all" title="Toggle Live DBMS/OS Terminal Console">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Sub-Navigation -->
+    <div class="md:hidden flex overflow-x-auto px-4 py-2 gap-2 border-t border-white/5 bg-slate-950/80">
+      <button onclick="switchTab('availability')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-amber-400 bg-white/5">
+        Availability Module
+      </button>
+      <button onclick="switchTab('movies')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400">
+        Now Showing
+      </button>
+      <button onclick="switchTab('tickets')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400">
+        My Tickets
+      </button>
+      <button onclick="switchTab('inspector')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400">
+        DBMS & OS Lab
+      </button>
+    </div>
+  </header>
+
+  <!-- Offline / Connection Status Banner -->
+  <div id="connectionAlertBanner" class="hidden bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-center text-xs font-mono text-amber-300">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-2">
+      <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+      <span><strong>Offline Browser Mode:</strong> To sync data live directly into XAMPP MySQL / phpMyAdmin, double-click <code class="bg-black/60 px-1.5 py-0.5 rounded text-white font-bold border border-white/10">start.bat</code> and use <a href="http://localhost:3000" class="underline font-bold text-white hover:text-amber-300">http://localhost:3000</a>!</span>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- =======================================================================
+         SECTION 1: AVAILABILITY MODULE (PRIMARY FOCUS)
+         ======================================================================= -->
+    <section id="section-availability" class="space-y-8">
+      
+      <!-- Selected Movie Hero & Showtime Strip -->
+      <div id="availabilityMovieHero" class="glass-panel-gold rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+        <!-- Rendered dynamically via selectMovie() in app.js -->
+      </div>
+
+      <!-- Cinema Hall & Interactive Seating Matrix -->
+      <div class="glass-panel rounded-2xl p-6 sm:p-10 relative overflow-hidden shadow-2xl">
+        
+        <!-- Hall Header & Controls -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-8">
+          <div>
+            <div class="flex items-center gap-2 text-xs font-mono text-amber-400 uppercase tracking-widest font-bold mb-1">
+              <i data-lucide="monitor" class="w-4 h-4"></i> Real-time Seating Matrix
+            </div>
+            <h3 id="activeScreenTitle" class="text-xl sm:text-2xl font-bold font-cinematic text-white">
+              Screen 1 • <span class="text-amber-400 font-normal">Pacific Multiplex</span>
+            </h3>
+          </div>
+
+          <!-- Tier Filters -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs text-slate-400 font-semibold mr-1">Filter Tier:</span>
+            <button id="filterBtn-ALL" onclick="filterSeatTier('ALL')" class="px-3 py-1 rounded-lg text-xs font-semibold font-mono border bg-amber-500/20 text-amber-300 border-amber-500/60 transition-all">
+              All
+            </button>
+            <button id="filterBtn-Platinum" onclick="filterSeatTier('Platinum')" class="px-3 py-1 rounded-lg text-xs font-semibold font-mono border text-slate-400 border-white/10 hover:border-purple-400/50 hover:text-purple-300 transition-all">
+              Platinum (₹400)
+            </button>
+            <button id="filterBtn-Gold" onclick="filterSeatTier('Gold')" class="px-3 py-1 rounded-lg text-xs font-semibold font-mono border text-slate-400 border-white/10 hover:border-amber-400/50 hover:text-amber-300 transition-all">
+              Gold (₹300)
+            </button>
+            <button id="filterBtn-Silver" onclick="filterSeatTier('Silver')" class="px-3 py-1 rounded-lg text-xs font-semibold font-mono border text-slate-400 border-white/10 hover:border-slate-400/50 hover:text-slate-300 transition-all">
+              Silver (₹200)
+            </button>
+          </div>
+        </div>
+
+        <!-- Curved Screen Visualizer with Light Projection -->
+        <div class="cinema-screen-container mb-12">
+          <div class="screen-projection-beam"></div>
+          <div class="curved-screen-bar"></div>
+          <div class="curved-screen-label flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            All Eyes On Curved Screen
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+          </div>
+        </div>
+
+        <!-- Seating Layout by Tier (Silver, Gold, Platinum) -->
+        <div id="cinemaHallSeats" class="space-y-6 max-w-4xl mx-auto">
+          <!-- Rendered dynamically in app.js -->
+        </div>
+
+        <!-- Seating Legend -->
+        <div class="mt-12 pt-6 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300 font-medium">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-slate-700 border border-slate-500"></div>
+            <span>Silver (₹200)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-amber-700 border border-amber-500"></div>
+            <span>Gold (₹300)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-purple-700 border border-purple-400"></div>
+            <span>Platinum (₹400)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-amber-500 border border-yellow-200 shadow-md shadow-amber-500/50"></div>
+            <span class="text-amber-300 font-bold">Selected</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-slate-900 border border-slate-800 opacity-50 flex items-center justify-center">
+              <i data-lucide="lock" class="w-2.5 h-2.5 text-slate-500"></i>
+            </div>
+            <span class="text-slate-500">Booked (Locked)</span>
+          </div>
+        </div>
+
+        <!-- Hall Capacity Stats Strip -->
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-8 py-3 px-6 rounded-xl bg-slate-950/60 border border-white/5 text-xs font-mono max-w-2xl mx-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400">Total Hall Seats:</span>
+            <span id="statTotal" class="font-bold text-white">15</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400">Available:</span>
+            <span id="statAvail" class="font-bold text-emerald-400">13</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400">Booked:</span>
+            <span id="statBooked" class="font-bold text-rose-400">2</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Floating Bottom Selection Bar / Checkout Dock -->
+      <div class="sticky bottom-4 z-30 glass-panel-gold rounded-2xl p-4 sm:p-5 shadow-2xl border border-amber-500/30 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-2xl">
+        <div class="flex-1 w-full md:w-auto">
+          <div class="flex items-center gap-2 text-xs font-mono text-amber-400 uppercase tracking-wider font-bold mb-1">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i> Selected Recliners
+          </div>
+          <div id="selectedSeatsBadges" class="flex flex-wrap gap-2 items-center">
+            <span class="text-xs text-slate-500 italic">No seats selected yet. Click on available chairs above.</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between w-full md:w-auto gap-6 border-t md:border-t-0 border-white/10 pt-3 md:pt-0">
+          <div class="text-left md:text-right">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Estimated Amount</span>
+            <div id="summaryTotalPrice" class="text-2xl font-black font-mono text-amber-400">₹0</div>
+          </div>
+
+          <button id="proceedToBookBtn" onclick="openCheckoutModal()" disabled class="opacity-50 cursor-not-allowed px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-xl shadow-amber-500/25 flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="credit-card" class="w-4 h-4"></i> Proceed to Checkout
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =======================================================================
+         SECTION 2: NOW SHOWING (MOVIES CATALOG)
+         ======================================================================= -->
+    <section id="section-movies" class="hidden space-y-6">
+      <div class="border-b border-white/10 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-bold font-cinematic text-white">Now Showing in Theatres</h2>
+          <p class="text-xs text-slate-400 mt-1">Explore current blockbuster screenings and live showtime slots across all auditoriums.</p>
+        </div>
+        <button onclick="openAddMovieModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/25 transition-all">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i> Add New Movie
+        </button>
+      </div>
+
+      <div id="moviesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Movies populated dynamically in app.js -->
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         SECTION 3: MY TICKETS (BOARDING PASS VIEW & CANCELLATION)
+         ======================================================================= -->
+    <section id="section-tickets" class="hidden space-y-6">
+      <div class="border-b border-white/10 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-bold font-cinematic text-white">Cinema Boarding Passes & Tickets</h2>
+          <p class="text-xs text-slate-400 mt-1">View booking history, print official thermal ticket stubs, or manage reservations.</p>
+        </div>
+        <button onclick="openUserModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-amber-400 border border-amber-500/30 flex items-center gap-2 transition-all">
+          <i data-lucide="users" class="w-4 h-4"></i> Switch Customer Account
+        </button>
+      </div>
+
+      <div id="ticketsListContainer">
+        <!-- Rendered dynamically in app.js -->
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         SECTION 4: DBMS & OS PBL LAB (ACADEMIC EVALUATION & LIVE INSPECTOR)
+         ======================================================================= -->
+    <section id="section-inspector" class="hidden space-y-8">
+      
+      <!-- Academic PBL Banner -->
+      <div class="glass-panel-gold rounded-2xl p-6 relative overflow-hidden border border-amber-500/40">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold">Graphic Era University • DBMS & OS PBL</span>
+            <h2 class="text-2xl font-bold font-cinematic text-white mt-1">Operating Systems & Database Engineering Inspector</h2>
+            <p class="text-xs text-slate-300 max-w-3xl mt-1 leading-relaxed">
+              Real-time demonstration harness verifying thread concurrency (<code class="text-amber-300 font-mono">std::mutex</code>), process isolation (<code class="text-amber-300 font-mono">fork()</code> & <code class="text-amber-300 font-mono">waitpid()</code>), parallel initialization (<code class="text-amber-300 font-mono">std::async</code>), and relational ACID transactions across 9 MySQL database tables.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="simulateSigIntShutdown()" class="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold flex items-center gap-1.5 transition-all">
+              <i data-lucide="radio" class="w-3.5 h-3.5"></i> Simulate SIGINT (Ctrl+C)
+            </button>
+            <button onclick="store.resetAllData()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold border border-white/10 flex items-center gap-1.5 transition-all">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset DB
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector Sub-Tabs -->
+      <div class="glass-panel rounded-2xl p-6 shadow-2xl">
+        <div class="flex flex-wrap gap-2 border-b border-white/10 pb-4 mb-6">
+          <button id="inspectorTabBtn-concurrency" onclick="switchInspectorTab('concurrency')" class="px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-amber-400 border-b-2 border-amber-400 bg-white/5 flex items-center gap-2">
+            <i data-lucide="lock" class="w-4 h-4"></i> Concurrency & Mutex Simulator
+          </button>
+          <button id="inspectorTabBtn-tables" onclick="switchInspectorTab('tables')" class="px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-2">
+            <i data-lucide="table" class="w-4 h-4"></i> Live Database Tables (Workbench)
+          </button>
+          <button id="inspectorTabBtn-sql" onclick="switchInspectorTab('sql')" class="px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-2">
+            <i data-lucide="database" class="w-4 h-4"></i> Live SQL Queries (ACID)
+          </button>
+          <button id="inspectorTabBtn-logs" onclick="switchInspectorTab('logs')" class="px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-2">
+            <i data-lucide="terminal" class="w-4 h-4"></i> System Log (booking.log)
+          </button>
+          <button id="inspectorTabBtn-schema" onclick="switchInspectorTab('schema')" class="px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white flex items-center gap-2">
+            <i data-lucide="network" class="w-4 h-4"></i> ER Schema & Constraints
+          </button>
+        </div>
+
+        <!-- Tab 1: Concurrency Lab -->
+        <div id="inspectorView-concurrency" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="p-6 rounded-xl bg-slate-950/80 border border-white/10 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+                  <i data-lucide="flame" class="w-4 h-4"></i> Live Race Condition Test
+                </div>
+                <h4 class="text-lg font-bold font-cinematic text-white mb-2">Simulate Dual-User Booking Collision</h4>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                  Triggers two concurrent threads (<code class="text-amber-300 font-mono">Thread-A: Ayush</code> and <code class="text-amber-300 font-mono">Thread-B: Sneha</code>) simultaneously racing to reserve Seat #7. Watch the Mutex lock acquire, critical section check execute, and Thread-B safely abort without double-booking.
+                </p>
+              </div>
+
+              <div>
+                <button onclick="runConcurrencyRaceSimulation()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                  <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i> Run Race Condition Simulation
+                </button>
+              </div>
+            </div>
+
+            <div class="p-6 rounded-xl bg-slate-950/80 border border-white/10 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center gap-2 text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+                  <i data-lucide="split" class="w-4 h-4"></i> Process Isolation: TicketPrinter
+                </div>
+                <h4 class="text-lg font-bold font-cinematic text-white mb-2">Child Process Forking (fork & waitpid)</h4>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                  The C++ backend isolates thermal printing into a separate child process via <code class="text-indigo-300 font-mono">fork()</code>. This keeps the parent booking loop non-blocking while <code class="text-indigo-300 font-mono">waitpid()</code> reaps the child cleanly to eliminate zombie processes.
+                </p>
+              </div>
+
+              <div class="p-3 rounded-lg bg-slate-900 border border-white/5 font-mono text-[11px] text-slate-400">
+                <div class="text-indigo-300 font-semibold mb-1">C++ Implementation snippet:</div>
+                <pre class="overflow-x-auto text-slate-300">pid_t pid = fork();
+if (pid == 0) {
+  // Child: render ticket & flush
+  _exit(0);
+} else {
+  waitpid(pid, &status, 0); // Reaping
+}</pre>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="raceSimulationResult">
+            <!-- Populated on button click -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Visual Database Tables (Workbench Explorer) -->
+        <div id="inspectorView-tables" class="hidden space-y-5">
+          
+          <!-- Storage Info Callout -->
+          <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-start gap-2.5">
+              <i data-lucide="info" class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5"></i>
+              <div class="text-slate-300 leading-relaxed">
+                <span class="font-bold text-amber-300 block mb-0.5">Where are these tables stored on your laptop?</span>
+                Tables are stored persistently in your browser's local database storage engine (<code class="text-amber-300 font-mono">localStorage</code>). 
+                <strong>Zero installations required</strong> — no MySQL Server or MySQL Workbench needed to run, view, or present your project. 
+                Any new booking or movie added updates these tables live!
+              </div>
+            </div>
+            <button onclick="exportDatabaseSQL()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap shadow-md shadow-amber-500/20">
+              <i data-lucide="download" class="w-4 h-4"></i> Export SQL Dump (.sql)
+            </button>
+          </div>
+
+          <!-- Table Selector Strip & Search Bar -->
+          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div class="flex flex-wrap gap-1.5" id="tablePickerButtons">
+              <button onclick="selectViewerTable('movies')" id="tblBtn-movies" class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold border bg-amber-500/20 text-amber-300 border-amber-500/60 transition-all">
+                movies (<span id="cnt-movies">5</span>)
+              </button>
+              <button onclick="selectViewerTable('shows')" id="tblBtn-shows" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                shows (<span id="cnt-shows">6</span>)
+              </button>
+              <button onclick="selectViewerTable('show_seats')" id="tblBtn-show_seats" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                show_seats (<span id="cnt-show_seats">33</span>)
+              </button>
+              <button onclick="selectViewerTable('customers')" id="tblBtn-customers" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                customers (<span id="cnt-customers">1</span>)
+              </button>
+              <button onclick="selectViewerTable('bookings')" id="tblBtn-bookings" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                bookings (<span id="cnt-bookings">0</span>)
+              </button>
+              <button onclick="selectViewerTable('booking_seats')" id="tblBtn-booking_seats" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                booking_seats (<span id="cnt-booking_seats">0</span>)
+              </button>
+              <button onclick="selectViewerTable('payments')" id="tblBtn-payments" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                payments (<span id="cnt-payments">0</span>)
+              </button>
+              <button onclick="selectViewerTable('screens')" id="tblBtn-screens" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                screens (2)
+              </button>
+              <button onclick="selectViewerTable('seats')" id="tblBtn-seats" class="px-3 py-1.5 rounded-lg text-xs font-mono border text-slate-400 border-white/10 hover:border-amber-400/40 hover:text-white transition-all">
+                seats (33)
+              </button>
+            </div>
+
+            <!-- Search input -->
+            <div class="relative w-full lg:w-64">
+              <input type="text" id="tableSearchInput" oninput="handleTableSearch(this.value)" placeholder="Search table rows..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-950 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-amber-400" />
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+            </div>
+          </div>
+
+          <!-- Active Table Meta Strip -->
+          <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-300 font-bold uppercase tracking-wider">Active Schema:</span>
+              <span id="activeTableNameBadge" class="text-amber-400 font-bold">cinema_booking.movies</span>
+            </div>
+            <div id="activeTableRowCountBadge">Showing 5 records</div>
+          </div>
+
+          <!-- Live Table Rendering Container -->
+          <div id="databaseTableContainer" class="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/80 shadow-inner max-h-[500px]">
+            <!-- Table dynamically populated via renderDatabaseTable in app.js -->
+          </div>
+
+        </div>
+
+        <!-- Tab 3: SQL Console -->
+        <div id="inspectorView-sql" class="hidden space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-white/5 pb-2">
+            <span>Executed Database Queries in Local Session (ACID Compliant)</span>
+            <span class="font-mono text-amber-400">MySQL 8.0 • InnoDB Engine</span>
+          </div>
+          <div id="sqlConsole" class="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+            <!-- Populated dynamically in app.js -->
+          </div>
+        </div>
+
+        <!-- Tab 3: System Logs -->
+        <div id="inspectorView-logs" class="hidden space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-white/5 pb-2">
+            <span>Real-time Stream matching <code class="text-amber-300 font-mono">booking.log</code></span>
+            <button onclick="Logger.flush()" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono">
+              Flush Buffer
+            </button>
+          </div>
+          <div id="terminalLogs" class="p-4 rounded-xl bg-[#080b11] border border-white/10 font-mono text-xs max-h-[500px] overflow-y-auto">
+            <!-- Logs populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Tab 4: Relational Schema -->
+        <div id="inspectorView-schema" class="hidden space-y-6">
+          <div class="text-xs text-slate-300 leading-relaxed max-w-3xl">
+            The database follows 3rd Normal Form (3NF) relational design across 9 core entities with strict foreign key constraints and cascading deletes:
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">1. customers</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">cust_id</span> INT (PK, AUTO_INC)</li>
+                <li>name VARCHAR(100)</li>
+                <li>phone_no BIGINT (UNIQUE)</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">2. movies</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">movie_id</span> INT (PK, AUTO_INC)</li>
+                <li>title VARCHAR(255)</li>
+                <li>language VARCHAR(50)</li>
+                <li>duration_mins INT</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">3. screens</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">screen_id</span> INT (PK)</li>
+                <li>screen_number INT</li>
+                <li>silver_count INT</li>
+                <li>gold_count INT</li>
+                <li>platinum_count INT</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">4. seats</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">seat_id</span> INT (PK)</li>
+                <li>screen_id INT (FK &rarr; screens)</li>
+                <li>seat_number INT</li>
+                <li>seat_type VARCHAR(20)</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">5. shows</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">show_id</span> INT (PK)</li>
+                <li>movie_id INT (FK &rarr; movies)</li>
+                <li>screen_id INT (FK &rarr; screens)</li>
+                <li>start_time INT</li>
+                <li>end_time INT</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">6. show_seats</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">show_seat_id</span> INT (PK)</li>
+                <li>show_id INT (FK &rarr; shows)</li>
+                <li>seat_id INT (FK &rarr; seats)</li>
+                <li>seat_number INT</li>
+                <li>status VARCHAR(20)</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">7. bookings</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">booking_id</span> INT (PK)</li>
+                <li>cust_id INT (FK &rarr; customers)</li>
+                <li>show_id INT (FK &rarr; shows)</li>
+                <li>total_amount INT</li>
+                <li>booking_status TINYINT(1)</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">8. booking_seats</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">id</span> INT (PK)</li>
+                <li>booking_id INT (FK &rarr; bookings)</li>
+                <li>show_seat_id INT (FK &rarr; show_seats)</li>
+              </ul>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10">
+              <div class="text-amber-400 font-bold mb-2">9. payments</div>
+              <ul class="text-slate-400 space-y-1">
+                <li><span class="text-amber-300 font-semibold">payment_id</span> INT (PK)</li>
+                <li>booking_id INT (FK &rarr; bookings)</li>
+                <li>amount INT</li>
+                <li>payment_method VARCHAR(20)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL 1: CHECKOUT & PAYMENT MODAL
+       ========================================================================= -->
+  <div id="checkoutModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="glass-panel-gold rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative border border-amber-500/40 animate-in fade-in zoom-in duration-200">
+      
+      <button onclick="closeCheckoutModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold font-cinematic text-white">Payment & Confirmation</h3>
+          <p class="text-xs text-slate-400">Locking seats through POSIX Mutex Critical Section</p>
+        </div>
+      </div>
+
+      <!-- Booking Order Summary Card -->
+      <div class="p-4 rounded-xl bg-slate-950/80 border border-white/10 mb-6 space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Film:</span>
+          <span id="checkoutMovieTitle" class="font-bold text-white">Interstellar</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Auditorium & Time:</span>
+          <span id="checkoutShowInfo" class="font-mono text-slate-200">Screen 1 • 09:00 AM</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Customer:</span>
+          <span class="text-slate-200 font-medium"><span id="checkoutCustomerName">Ayush Rawat</span> (<span id="checkoutCustomerPhone" class="font-mono">9876543210</span>)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Reserved Seats:</span>
+          <span id="checkoutSeatsList" class="font-mono font-bold text-amber-300">11, 12</span>
+        </div>
+        <div class="border-t border-white/10 pt-2 flex justify-between text-slate-400">
+          <span>Base Ticket Fare:</span>
+          <span id="checkoutBaseAmount" class="font-mono">₹700</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Entertainment GST:</span>
+          <span id="checkoutGstAmount" class="font-mono">₹126 (18%)</span>
+        </div>
+        <div class="border-t border-white/10 pt-2 flex justify-between text-sm font-bold">
+          <span class="text-white">Total Payable Amount:</span>
+          <span id="checkoutGrandTotal" class="font-mono text-amber-400 text-lg">₹826</span>
+        </div>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <div class="mb-6">
+        <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-2">Choose Payment Gateway:</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button id="payMethod-UPI" onclick="selectPaymentMethod('UPI')" class="p-3 rounded-xl border border-amber-400 bg-amber-500/10 text-amber-300 text-xs font-bold font-mono flex flex-col items-center gap-1.5 transition-all">
+            <i data-lucide="smartphone" class="w-4 h-4"></i> UPI Pay
+          </button>
+          <button id="payMethod-CreditCard" onclick="selectPaymentMethod('CreditCard')" class="p-3 rounded-xl border border-white/10 text-slate-300 text-xs font-bold font-mono flex flex-col items-center gap-1.5 transition-all hover:border-amber-400/40">
+            <i data-lucide="credit-card" class="w-4 h-4"></i> Credit Card
+          </button>
+          <button id="payMethod-Cash" onclick="selectPaymentMethod('Cash')" class="p-3 rounded-xl border border-white/10 text-slate-300 text-xs font-bold font-mono flex flex-col items-center gap-1.5 transition-all hover:border-amber-400/40">
+            <i data-lucide="banknote" class="w-4 h-4"></i> Cash Counter
+          </button>
+        </div>
+      </div>
+
+      <!-- UPI QR Code View -->
+      <div id="payView-UPI" class="p-4 rounded-xl bg-slate-950/60 border border-white/5 mb-6 text-center">
+        <div class="w-32 h-32 bg-white rounded-lg mx-auto p-2 mb-2 shadow-lg flex items-center justify-center">
+          <svg class="w-full h-full" viewBox="0 0 100 100" fill="black">
+            <rect x="5" y="5" width="25" height="25" fill="black" />
+            <rect x="10" y="10" width="15" height="15" fill="white" />
+            <rect x="70" y="5" width="25" height="25" fill="black" />
+            <rect x="75" y="10" width="15" height="15" fill="white" />
+            <rect x="5" y="70" width="25" height="25" fill="black" />
+            <rect x="10" y="75" width="15" height="15" fill="white" />
+            <rect x="40" y="20" width="20" height="15" fill="black" />
+            <rect x="40" y="50" width="20" height="20" fill="black" />
+            <rect x="70" y="50" width="15" height="15" fill="black" />
+            <rect x="20" y="45" width="10" height="15" fill="black" />
+          </svg>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400">Scan via GPay / PhonePe / Paytm:</span>
+        <div class="text-xs font-mono font-bold text-amber-300">pvr.multiplex@icici</div>
+      </div>
+
+      <!-- Credit Card Interactive Card View -->
+      <div id="payView-CreditCard" class="hidden p-4 rounded-xl bg-gradient-to-tr from-slate-900 to-indigo-950 border border-indigo-500/30 mb-6">
+        <div class="text-[10px] uppercase font-mono tracking-widest text-indigo-300 mb-2">Pacific Platinum Reserve</div>
+        <div class="font-mono text-base tracking-widest text-white mb-3">•••• •••• •••• 4028</div>
+        <div class="flex justify-between text-[10px] font-mono text-slate-300">
+          <span>HOLDER: AYUSH RAWAT</span>
+          <span>EXP: 08/29</span>
+        </div>
+      </div>
+
+      <!-- Cash View -->
+      <div id="payView-Cash" class="hidden p-4 rounded-xl bg-slate-950/60 border border-white/5 mb-6 text-center text-xs text-slate-300">
+        <i data-lucide="banknote" class="w-8 h-8 text-amber-400 mx-auto mb-2"></i>
+        Cash payment slip will be generated. Please tender exact change at Box Office counter 2.
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <button onclick="closeCheckoutModal()" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all">
+          Cancel
+        </button>
+        <button id="confirmPaymentBtn" onclick="confirmBookingAndPay()" class="flex-2 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2">
+          <i data-lucide="check-circle" class="w-4 h-4"></i> Confirm & Book
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: CUSTOMER LOGIN / PROFILE (Customer.cpp: phone lookup)
+       ========================================================================= -->
+  <div id="userModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="glass-panel-gold rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-amber-500/40">
+      <button onclick="closeUserModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
+          <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold font-cinematic text-white">Customer Authentication</h3>
+          <p class="text-xs text-slate-400">Phone lookup query matching Customer.cpp</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleCustomerLogin(event)" class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-slate-300 block mb-1">Phone Number (Required):</label>
+          <input type="number" id="loginPhone" required placeholder="e.g. 9876543210" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-sm focus:outline-none focus:border-amber-400" />
+          <span class="text-[10px] text-slate-500 mt-1 block">Used as primary unique key in `customers` table.</span>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-300 block mb-1">Full Name:</label>
+          <input type="text" id="loginName" placeholder="e.g. Ayush Rawat" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="button" onclick="closeUserModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase">
+            Cancel
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20">
+            Sign In / Register
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: PRINTABLE TICKET STUB MODAL
+       ========================================================================= -->
+  <div id="ticketModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="glass-panel-gold rounded-2xl max-w-xl w-full p-6 shadow-2xl relative border border-amber-500/40">
+      <button onclick="closeTicketModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg no-print">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div id="ticketModalBody">
+        <!-- Rendered in app.js -->
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3 no-print">
+        <button onclick="closeTicketModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+          Close Preview
+        </button>
+        <button onclick="triggerRealPrint()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20">
+          <i data-lucide="printer" class="w-4 h-4"></i> Print Ticket / Save PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: ADD NEW MOVIE & SCHEDULE SHOWTIME
+       ========================================================================= -->
+  <div id="addMovieModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="glass-panel-gold rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative border border-amber-500/40 my-8">
+      <button onclick="closeAddMovieModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold">
+          <i data-lucide="film" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold font-cinematic text-white">Add New Movie & Schedule Show</h3>
+          <p class="text-xs text-slate-400">Generates relational inserts for `movies`, `shows`, and `show_seats`</p>
+        </div>
+      </div>
+
+      <!-- Quick 1-Click Movie Presets -->
+      <div class="mb-5 p-3 rounded-xl bg-slate-950/70 border border-white/5">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-amber-400 font-bold block mb-2">
+          ⚡ 1-Click Blockbuster Presets:
+        </span>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="setPresetMovie('Gladiator II', 'English', 148, 'Action / Epic', '8.4', 'Ridley Scott', 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=600&auto=format&fit=crop', 'Years after witnessing the death of the revered hero Maximus at the hands of his uncle, Lucius must enter the Colosseum after his home is conquered by tyrannical Emperors.')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[11px] font-mono text-slate-300 border border-white/10 hover:border-amber-400/50 transition-all">
+            🛡️ Gladiator II
+          </button>
+          <button type="button" onclick="setPresetMovie('The Dark Knight', 'English', 152, 'Action / Crime', '9.0', 'Christopher Nolan', 'https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=600&auto=format&fit=crop', 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[11px] font-mono text-slate-300 border border-white/10 hover:border-amber-400/50 transition-all">
+            🦇 The Dark Knight
+          </button>
+          <button type="button" onclick="setPresetMovie('Avatar: The Way of Water', 'English', 192, 'Sci-Fi / Adventure', '8.1', 'James Cameron', 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop', 'Jake Sully lives with his newfound family formed on the extrasolar moon Pandora. Once a familiar threat returns, Jake must work with Neytiri and the army of the Na\'vi race.')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[11px] font-mono text-slate-300 border border-white/10 hover:border-amber-400/50 transition-all">
+            🌊 Avatar: The Way of Water
+          </button>
+          <button type="button" onclick="setPresetMovie('Spider-Man: Across the Spider-Verse', 'English', 140, 'Animation / Action', '8.7', 'Joaquim Dos Santos', 'https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=600&auto=format&fit=crop', 'Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence.')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[11px] font-mono text-slate-300 border border-white/10 hover:border-amber-400/50 transition-all">
+            🕷️ Spider-Verse
+          </button>
+        </div>
+      </div>
+
+      <form onsubmit="handleAddMovie(event)" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Movie Title *</label>
+            <input type="text" id="addMovieTitle" required placeholder="e.g. Gladiator II" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Director *</label>
+            <input type="text" id="addMovieDirector" required placeholder="e.g. Ridley Scott" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Language</label>
+            <input type="text" id="addMovieLang" required value="English" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400 font-mono" />
+          </div>
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Duration (Mins)</label>
+            <input type="number" id="addMovieDuration" required value="150" min="30" max="300" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400 font-mono" />
+          </div>
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">IMDb Rating</label>
+            <input type="text" id="addMovieRating" required value="8.5" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400 font-mono" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Genre</label>
+            <input type="text" id="addMovieGenre" required value="Action / Adventure" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">Poster Image URL</label>
+            <input type="url" id="addMoviePoster" required value="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=600&auto=format&fit=crop" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-[11px] font-mono focus:outline-none focus:border-amber-400" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-slate-300 font-semibold block mb-1">Synopsis / Storyline</label>
+          <textarea id="addMovieSynopsis" rows="2" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-amber-400 leading-relaxed" placeholder="Brief movie description..."></textarea>
+        </div>
+
+        <!-- Showtime Configuration Section -->
+        <div class="p-4 rounded-xl bg-slate-950/80 border border-amber-500/20">
+          <div class="text-[11px] font-mono uppercase tracking-wider text-amber-400 font-bold mb-3 flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Initial Showtime Scheduling (shows table):
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-slate-300 font-semibold block mb-1">Auditorium / Screen:</label>
+              <select id="addMovieScreen" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-amber-400">
+                <option value="1">Screen 1 (15 Seats: 5S, 5G, 5P)</option>
+                <option value="2">Screen 2 (18 Seats: 6S, 6G, 6P)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-slate-300 font-semibold block mb-1">Start Hour (24h format):</label>
+              <select id="addMovieStartHour" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-amber-400">
+                <option value="11">11:00 AM (11:00 - 14:00)</option>
+                <option value="15">03:00 PM (15:00 - 18:00)</option>
+                <option value="18">06:00 PM (18:00 - 21:00)</option>
+                <option value="21">09:00 PM (21:00 - 00:00)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="button" onclick="closeAddMovieModal()" class="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase">
+            Cancel
+          </button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Add Movie & Shows
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FLOATING OS / DBMS DRAWER HUD (QUICK ACCESS)
+       ========================================================================= -->
+  <div id="inspectorDrawer" class="fixed top-20 right-0 bottom-0 w-full sm:w-[500px] z-50 bg-[#070a10]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+      <div class="flex items-center gap-2 font-mono text-xs text-amber-400 font-bold">
+        <i data-lucide="terminal" class="w-4 h-4"></i> Live DBMS & OS Trace Console
+      </div>
+      <button onclick="toggleInspector()" class="p-1 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <div>
+        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">Active Lock Status</span>
+        <div class="p-3 rounded-lg bg-slate-950 border border-white/5 flex items-center justify-between text-xs font-mono">
+          <span class="text-slate-300">std::mutex seatMutex:</span>
+          <span class="text-emerald-400 font-bold">RELEASED (FREE)</span>
+        </div>
+      </div>
+
+      <div>
+        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">Recent MySQL Statements</span>
+        <div class="p-3 rounded-lg bg-slate-950 border border-white/5 font-mono text-[11px] text-emerald-300 space-y-1">
+          <div>SELECT * FROM movies ORDER BY movie_id;</div>
+          <div>SELECT * FROM show_seats WHERE show_id=1;</div>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="switchTab('inspector'); toggleInspector();" class="w-full py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider font-sans shadow-lg shadow-amber-500/20">
+          Open Fullscreen Lab & Simulator
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="mt-auto border-t border-white/5 py-8 text-center text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        &copy; 2026 PVR Pacific Cinemas • Built for DBMS & OS Project Based Learning (PBL)
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <span>C++17</span>
+        <span>•</span>
+        <span>POSIX Threads</span>
+        <span>•</span>
+        <span>Process Forking</span>
+        <span>•</span>
+        <span>MySQL 8.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>

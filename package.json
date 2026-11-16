@@ -1,0 +1,25 @@
+{
+  "name": "cinema-ticket-booking-availability-module",
+  "version": "2.0.0",
+  "description": "Classy Cinema Ticket Booking & Seat Availability Frontend for DBMS & OS PBL Project",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "cinema-booking",
+    "availability-module",
+    "dbms",
+    "operating-systems",
+    "concurrency",
+    "mutex",
+    "pbl"
+  ],
+  "author": "Ayush Rawat & Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.24.6"
+  }
+}
